@@ -1,0 +1,107 @@
+// App.js
+import React, { useState } from 'react';
+import { JsonForms } from '@jsonforms/react';
+import { jsonformsReducer } from '@jsonforms/core';
+import { Provider } from 'react-redux';
+import { createStore, combineReducers } from 'redux';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import './App.css';
+
+import PriorityRenderer from './PriorityRenderer';
+import DateRenderer from './DateRenderer';
+
+const schema = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    description: { type: 'string' },
+    dueDate: { type: 'string', format: 'date' },
+    priority: { type: 'string', enum: ['Low', 'Medium', 'High'] },
+  },
+  required: ['title'],
+};
+
+const uischema = {
+  type: 'VerticalLayout',
+  elements: [
+    { type: 'Control', scope: '#/properties/title' },
+    { type: 'Control', scope: '#/properties/description' },
+    {
+      type: 'Control',
+      scope: '#/properties/dueDate',
+      CustomUIComponent: 'DateRenderer',
+    },
+    {
+      type: 'Control',
+      scope: '#/properties/priority',
+      CustomUIComponent: 'PriorityRenderer',
+    },
+  ],
+};
+
+const App = () => {
+  const [tasks, setTasks] = useState([]);
+  const [formData, setFormData] = useState({});
+  const store = createStore(
+    combineReducers({ jsonforms: jsonformsReducer() }),
+    {
+      jsonforms: {
+        data: formData,
+        schema: schema,
+        uischema: uischema,
+      },
+    }
+  );
+
+  const handleTaskChange = ({ data }) => {
+    setFormData(data);
+  };
+
+  const handleAddTask = () => {
+    if (formData.title) {
+      setTasks([...tasks, formData]);
+      setFormData({});
+    }
+  };
+
+  const handleDeleteTask = (index) => {
+    const updatedTasks = [...tasks];
+    updatedTasks.splice(index, 1);
+    setTasks(updatedTasks);
+  };
+
+  return (
+    <div className="app-container">
+      <h1 className="app-heading">To-Do Application</h1>
+      <div className="todo-form">
+        <JsonForms store={store} onChange={handleTaskChange} />
+        <button className="btn btn-primary" onClick={handleAddTask}>
+          Add Task
+        </button>
+      </div>
+      <ul className="todo-list">
+        {tasks.map((task, index) => (
+          <li key={index} className="todo-item">
+            <h3>{task.title}</h3>
+            <p>{task.description}</p>
+            <p>
+              Due Date: <DateRenderer data={task.dueDate} />
+            </p>
+            <p>
+              Priority: <PriorityRenderer data={task.priority} />
+            </p>
+            <button
+              className="btn btn-danger"
+              onClick={() => handleDeleteTask(index)}
+            >
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default App;
